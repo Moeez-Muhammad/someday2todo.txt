@@ -1,21 +1,34 @@
 import os
-import argparse
 import datetime
 
-todaydate = datetime.datetime.today().strftime('%Y-%m-%d')
-todofolder = "%USERPROFILE%\\todo"
+def validate(date_text):
+    try:
+        datetime.datetime.strptime(date_text, '%Y-%m-%d')
+    except ValueError:
+        return False
 
-todo = todofolder + '\\todo.txt'
-someday = todofolder + '\\someday.txt'
-somedaycopy = todofolder + '\\somedaycopy.txt'
-string = 'redirect:'
+scriptlocation = os.path.dirname(os.path.realpath(__file__))
+
+with open(os.path.join(scriptlocation, 'settings.txt'), 'r') as settings:
+    lines = settings.readlines()
+    todofolder = lines[0].rstrip()
+    todo = os.path.join(todofolder, lines[1].rstrip())
+    someday = os.path.join(todofolder, lines[2].rstrip())
+    somedaycopy = os.path.join(todofolder, lines[2].rstrip()[:-4] + 'copy' + '.txt')
+    locatorstring = lines[3].rstrip()
+
+todaydate = datetime.datetime.today().strftime('%Y-%m-%d')
+
 with open(todo, 'a+') as outfile, open(someday, 'r+') as infile, open(somedaycopy, 'a+') as someday2:
     for line in infile: # iterate over lines
-        if string in line: # see if line has a redirect date
-            date = line[line.index(string) + len(string):] # get the date from the line
-            if date == todaydate: # if the date is today
-                task = line.split(string)[0] # get the task
-                outfile.write(date, task + '\n') # write the task with the date at the front as a creation date
+        if locatorstring in line: # see if line has a redirect date
+            redirectdate = line[line.index(locatorstring) + len(locatorstring):].rstrip() # get the date from the line
+            if redirectdate == todaydate: # if the date is today
+                task = line.split(locatorstring)[0] # get the task
+                if validate(line[:9]) == False:
+                    outfile.write(redirectdate + task + '\n') # write the task with the date at the front as a creation date
+                else:
+                    outfile.write(task + '\n')
             else:
                 someday2.write(line) # if it is not today's date, write to someday2
         else:
